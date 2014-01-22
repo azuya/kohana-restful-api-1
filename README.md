@@ -3,6 +3,17 @@ kohana-restful-api
 
 Simple module for implementation of RESTful API as self-contained packages
 
+####Request
+/**
+ * version API = v1
+ * resource = news
+ * resource id = 23
+ * response format = json
+ */
+http://site.com/api/v1/news/23.json
+
+will be loaded class DOCROOT/API/v1/News and executed method "read" with params: id=23
+
 ####Structure application
 <pre>
 DOCROOT
