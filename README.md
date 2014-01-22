@@ -4,7 +4,7 @@ kohana-restful-api
 Simple module for implementation of RESTful API as self-contained packages
 
 ####Structure application
-
+<pre>
 DOCROOT
 ....API
 ........v1
@@ -17,3 +17,4 @@ DOCROOT
 ....modules
 ........restful-api
 ....system
+</pre>
