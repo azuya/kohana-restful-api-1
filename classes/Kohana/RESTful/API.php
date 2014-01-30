@@ -3,19 +3,18 @@
 class Kohana_RESTful_API {
 
 	/**
-	 * @param object $request 		// instance of class Request
-	 * @param object $response		// instance of class Request
-	 * @return object 				// new instance of this class
+	 * @param object $route		// instance of class Route
+	 * @param array $params		// current route params
+	 * @param object $request	// instance of class Request
+	 *
+	 * @return array
 	 */
-	public static function factory(Request $request, Response $response)
+	public static function run(Route $route, array $params, Request $request)
 	{
-		return new static($request, $response);
+		$restful_api = new static($route, $params, $request);
+		// echo Debug::vars($restful_api->params);
+		return $restful_api->params;
 	}
-
-	/**
-	 * @var array
-	 */
-	public $config;
 
 	/**
 	 * Instance of class Request
@@ -25,60 +24,41 @@ class Kohana_RESTful_API {
 	public $request;
 
 	/**
-	 * Instance of class Response
+	 * Instance of class Route
 	 *
 	 * @var object
 	 */
-	public $response;
+	public $route;
 
 	/**
-	 * Class constructor
+	 * Current route params
 	 *
-	 * @param object $request 		// instance of class Request
-	 * @param object $response		// instance of class Request
-	 * @return void
+	 * @var array
 	 */
-	public function __construct(Request $request, Response $response)
-	{
-		$this->config 	= Kohana::$config->load('restful_api')->as_array();
-		$this->request 	= $request;
-		$this->response = $response;
-
-		$this->_overwrite_method();
-	}
+	public $params = array(
+		'version' 	=> 'v1',
+		'resource' 	=> 'help'
+	);
 
 	/**
-	 * Gets request params
+	 * Gets params for route
 	 *
 	 * @return array
 	 */
 	public function params()
 	{
-		$params = array(
-			'id' 				=> $this->request->param('id'),
-			'related_id' 		=> $this->request->param('rel_id'),
-			'related_resource' 	=> $this->request->param('rel_resource'),
-		);
-
-		return Arr::merge($this->request->query(), $this->request->post(), $params);
+		return $this->params;
 	}
 
-	/**
-	 * Performs the API call and sends response
-	 *
-	 * @return $this
-	 */
-	public function execute()
+	protected function __construct(Route $route, array $params, Request $request)
 	{
-		if (class_exists('Debugtoolbar'))
-		{
-			Debugtoolbar::disable();
-		}
+		$this->config 	= Kohana::$config->load('restful_api');
+		$this->request 	= $request;
+		$this->route 	= $route;
+		$this->params 	= Arr::merge($this->params, $params);
 
-		$response = $this->_request();
-		$this->_response($response);
-
-		return $this;
+		$this->_overwrite_method();
+		$this->_set_params();
 	}
 
 	/**
@@ -89,7 +69,8 @@ class Kohana_RESTful_API {
 	 */
 	protected function _overwrite_method()
 	{
-		if (HTTP_Request::GET == $this->request->method() AND ($method = $this->request->param('http_method')))
+		if (HTTP_Request::GET === $this->request->method()
+			AND ($method = Arr::get($this->params, 'http_method', FALSE)))
 		{
 			switch (strtoupper($method))
 			{
@@ -110,52 +91,32 @@ class Kohana_RESTful_API {
 		}
 	}
 
-	/**
-	 * Call API
-	 *
-	 * @return mixed
-	 */
-	protected function _request()
+	protected function _set_params()
 	{
-		$class = '\API\\'.$this->request->param('version').'\\'.UTF8::ucfirst($this->request->param('resource'));
+		$controller = 'Api_'.ucfirst($this->params['version']).'_'.ucfirst($this->params['resource']);
+		$action 	= $this->config['action_map'][$this->request->method()];
 
-		if (class_exists($class))
+		if (class_exists('Controller_'.$controller)
+			AND method_exists('Controller_'.$controller, 'action_'.$action))
 		{
-			$params = Arr::merge($this->request->query(), $this->request->post(), $this->request->param());
-			$api 	= new $class();
-			$method = (array_key_exists($this->request->method(), $this->config['action_map']))
-				? $this->config['action_map'][$this->request->method()]
-				: $this->config['action_map']['default_action'];
-
-			if (method_exists($api, $method))
-			{
-				return $api->{$method}($this->params());
-			}
-
-			throw new RESTful_API_Exception('Requested action not implemented', 501);
+			$this->params['controller'] = $controller;
+			$this->params['action'] 	= $action;
+		}
+		else
+		{
+			$this->params['controller'] = 'Restful_Api_Error';
+			$this->params['action'] 	= strtolower($this->request->method());
 		}
 
-		throw new RESTful_API_Exception('Requested resource not found', 404);
-	}
-
-	/**
-	 * Sets response
-	 *
-	 * @param mixed $data
-	 * @return void
-	 */
-	protected function _response($data = NULL)
-	{
-		$this->response->headers('Content-Type', Arr::get($this->config['content_type'], $this->request->param('format'), $this->config['content_type_default']));
-
-		$response_class = Arr::get($this->config['format_map'], $this->request->param('format'), FALSE);
+		$response_class = Arr::get($this->config['format_map'], $this->params['format'], FALSE);
 
 		if ( ! $response_class OR ! class_exists($response_class))
 		{
-			throw new RESTful_API_Exception('Unsupported response format '.$this->request->param('format'), 501);
-		}
+			$this->request->query('requested_format', $this->params['format']);
 
-		$response = new $response_class($data);
-		$this->response->body($response->render());
+			$this->params['controller'] = 'Restful_Api_Error';
+			$this->params['action'] 	= 'unsupported_format';
+			$this->params['format'] 	= $this->config['default_format'];
+		}
 	}
 }

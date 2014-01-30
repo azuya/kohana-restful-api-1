@@ -2,8 +2,10 @@
 
 abstract class Kohana_RESTful_API_Response {
 
+	protected $_config;
+
 	protected $_data = array(
-		'status' 			=> '200',
+		'status_code' 		=> '200',
 		'status_message' 	=> 'OK',
 		'body' 				=> NULL,
 		'messages' 			=> NULL,
@@ -18,7 +20,14 @@ abstract class Kohana_RESTful_API_Response {
 			$data = array('body' => $data);
 		}
 
-		$this->_data = Arr::merge($this->_data, $data);
+		$this->_config 	= Kohana::$config->load('restful_api');
+		$this->_data 	= Arr::merge($this->_data, $data);
+
+		$this->_data['status_message'] = Arr::get(
+			$this->_config['http_status_messages'],
+			$this->_data['status_code'],
+			'Undefined'
+		);
 	}
 
 	public function data()
@@ -28,6 +37,13 @@ abstract class Kohana_RESTful_API_Response {
 
 	public function __toString()
 	{
-		return $this->render();
+		$response = $this->render();
+
+		if (is_array($response) OR is_object($response))
+		{
+			$response = Debug::vars($response);
+		}
+
+		return $response;
 	}
 }
