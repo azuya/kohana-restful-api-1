@@ -32,6 +32,11 @@ class Kohana_Controller_Restful_Api_Error extends Controller_Restful_Api {
 		$this->messages = 'Unsupported response format: '.UTF8::strtoupper($this->response->query('requested_format'));
 	}
 
+	public function action_unsupported_request_format()
+	{
+		$this->messages = 'Unsupported request format: '.UTF8::strtoupper($this->request->method());
+	}
+
 	public function action_undefined()
 	{
 		$this->status_code = 500;
@@ -41,11 +46,12 @@ class Kohana_Controller_Restful_Api_Error extends Controller_Restful_Api {
 	public function after()
 	{
 		$this->status_code 		= ($this->status_code) ? $this->status_code : 501;
-		$this->status_message 	= ($this->status_message) ? $this->status_message : 'Not Implemented';
 		$this->body 			= ($this->body) ? $this->body : NULL;
 		$this->messages 		= (empty($this->messages))
 								? array('Requested action is not available')
-								: $this->messages;
+								: (is_array($this->messages))
+									? $this->messages
+									: array($this->messages);
 
 		Kohana::$log->add(Log::ERROR, 'RequestedURL: '.$this->request->uri());
 		Kohana::$log->add(Log::ERROR, 'ErrorMessage: '.implode('; ', $this->messages));

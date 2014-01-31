@@ -94,18 +94,26 @@ class Kohana_RESTful_API {
 	protected function _set_params()
 	{
 		$controller = 'Api_'.ucfirst($this->params['version']).'_'.ucfirst($this->params['resource']);
-		$action 	= $this->config['action_map'][$this->request->method()];
+		$action 	= Arr::get($this->config['action_map'], $this->request->method(), NULL);
 
 		if (class_exists('Controller_'.$controller)
-			AND method_exists('Controller_'.$controller, 'action_'.$action))
+			AND method_exists('Controller_'.$controller, 'action_'.$action)
+			AND $action != NULL)
 		{
 			$this->params['controller'] = $controller;
 			$this->params['action'] 	= $action;
 		}
 		else
 		{
+			$action = strtolower($this->request->method());
+
+			if ( ! method_exists('Restful_Api_Error', 'action_'.$action))
+			{
+				$action = 'unsupported_request_format';
+			}
+
 			$this->params['controller'] = 'Restful_Api_Error';
-			$this->params['action'] 	= strtolower($this->request->method());
+			$this->params['action'] 	= $action;
 		}
 
 		$response_class = Arr::get($this->config['format_map'], $this->params['format'], FALSE);

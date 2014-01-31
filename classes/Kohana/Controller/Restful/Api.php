@@ -3,7 +3,6 @@
 class Kohana_Controller_Restful_Api extends Controller {
 
 	public $status_code;
-	public $status_message;
 	public $body;
 	public $messages = array();
 
@@ -35,8 +34,7 @@ class Kohana_Controller_Restful_Api extends Controller {
 
 			$response_class = Arr::get($this->_restful_api_config['format_map'], $this->request->param('format'), FALSE);
 			$response = new $response_class(array(
-				'status_code' 		=> $this->status_code,
-				'status_message' 	=> $this->status_message,
+				'status_code' 		=> ($this->status_code) ? $this->status_code : 200,
 				'body' 				=> ($this->body) ? $this->body : $this->response->body(),
 				'messages' 			=> $this->messages,
 			));
