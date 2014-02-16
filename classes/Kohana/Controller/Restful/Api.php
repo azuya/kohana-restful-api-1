@@ -22,6 +22,48 @@ class Kohana_Controller_Restful_Api extends Controller {
 
 	public function after()
 	{
+		parent::after();
+	}
+
+	/**
+	 * Executes the given action and calls the [Controller::before] and [Controller::after] methods.
+	 *
+	 * Can also be used to catch exceptions from actions in a single place.
+	 *
+	 * 1. Before the controller action is called, the [Controller::before] method
+	 * will be called.
+	 * 2. Next the controller action will be called.
+	 * 3. After the controller action is called, the [Controller::after] method
+	 * will be called.
+	 *
+	 * @throws  HTTP_Exception_404
+	 * @return  Response
+	 */
+	public function execute()
+	{
+		try
+		{
+			parent::execute();
+		}
+		catch (Kohana_Exception $e)
+		{
+			$this->status_code 	= RESTful_API_Exception::code($e);
+			$this->messages[] 	= RESTful_API_Exception::text($e);
+		}
+
+		$this->_response();
+
+		// Return the response
+		return $this->response;
+	}
+
+	/**
+	 * Set response data
+	 *
+	 * @return void
+	 */
+	protected function _response()
+	{
 		try
 		{
 			$content_type = Arr::get(
@@ -43,9 +85,7 @@ class Kohana_Controller_Restful_Api extends Controller {
 		}
 		catch (Kohana_Exception $e)
 		{
-			$this->response->body(Kohana_Exception::text($e));
+			$this->response->body(RESTful_API_Exception::text($e));
 		}
-
-		parent::after();
 	}
 }

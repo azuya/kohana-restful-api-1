@@ -12,7 +12,6 @@ class Kohana_RESTful_API {
 	public static function run(Route $route, array $params, Request $request)
 	{
 		$restful_api = new static($route, $params, $request);
-		// echo Debug::vars($restful_api->params);
 		return $restful_api->params;
 	}
 
