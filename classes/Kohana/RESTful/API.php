@@ -69,12 +69,12 @@ class Kohana_RESTful_API {
 	 */
 	protected function _overwrite_method()
 	{
-		if (HTTP_Request::GET === $this->request->method()
+		if ((HTTP_Request::GET === $this->request->method() OR HTTP_Request::POST === $this->request->method())
 			AND ($method = Arr::get($this->params, 'http_method', FALSE)))
 		{
 			switch (strtoupper($method))
 			{
-				case HTTP_Request::POST:
+				// case HTTP_Request::POST:
 				case HTTP_Request::PUT:
 				case HTTP_Request::DELETE:
 					$this->request->method($method);
